@@ -1,0 +1,78 @@
+#!/usr/bin/env lua
+local VERSION = "0.0.1"
+local ArgParse = require("lua-complete.argparse")
+
+-- function overrides
+function ArgParse.printFullHelp(serverArgs, clientArgs)
+    print("lua-complete mode [options]")
+    print("mode: (client | server)")
+    print("\nServer options")
+    print("lua-complete server [-p <port>]")
+    serverArgs:print()
+
+    print("\nClient options")
+    print("lua-complete client -f <file> -c <cursor> [-p <port>] [-x <port>]")
+    clientArgs:print()
+
+    os.exit()
+end
+
+function ArgParse.printShortHelp(code)
+    print("see 'lua-complete --help' for more information")
+    os.exit(code or 1)
+end
+
+function ArgParse.printVersion()
+    print("lua-complete v" .. VERSION)
+    print("a lua autocompletion helper")
+    ArgParse.printShortHelp(0)
+end
+
+local function main(args)
+
+    local serverArgs = ArgParse:new()
+    serverArgs:add("p", "port", "port number to run the server on (51371)", true, nil, "51371")
+
+    local clientArgs = ArgParse:new()
+    clientArgs:add("f", "file", "path to file for autocompletion", true)
+    clientArgs:add("c", "cursor", "cursor offset (in bytes) of variable to analyze", true)
+    clientArgs:add("p", "port", "port number to connect to (51371)", true, nil, "51371")
+    -- technically a flag and not an arg
+    -- gonna do some minor hacks to get this going.
+    clientArgs:add("x", "shutdown", "shutdown the server on a specified port (51371)", false, true, "51371")
+
+    if ArgParse.commonHelp[args[1]] then
+        ArgParse.printFullHelp(serverArgs, clientArgs)
+    end
+
+    -- handle version
+    if ArgParse.versions[args[1]] then
+        ArgParse.printVersion()
+    end
+
+    local commands
+    if args[1] == "client" then
+        local client = require("lua-complete.client")
+        commands = clientArgs:parse(args, 2)
+        -- check for the override
+        if commands["shutdown"] then
+            client.shutdown(commands.shutdown)
+        else
+            client.sendRequest(commands.file, commands.cursor, tonumber(commands.port))
+        end
+
+    -- fire up the server
+    elseif args[1] == "server" then
+        local server = require("lua-complete.server")
+        commands = serverArgs:parse(args, 2)
+        print(commands.port)
+        server(tonumber(commands.port))
+
+    else
+        print("Mode must be either 'client' or 'server'")
+        ArgParse.printShortHelp()
+    end
+
+end
+
+main(arg)
