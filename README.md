@@ -6,21 +6,29 @@ I'll try to keep this updated with what's currently working, what I plan to do i
 ## Working
 LuaComplete can currently help auto-complete:
  * Top-level module functions/variables
- * Lua standard library
+ * Lua standard library (except packages)
+ * All levels of module information (sub-table values/functions)
+ * Function parameters for Lua functions defined in modules
 
 ## In the future
- * All levels of module information (sub-table values/functions)
  * Add include paths (can then handle project-level modules)
  * Table completions
+ * Function parameters for Lua functions defined in file
  * Completions of Lua's 'self' with colon operator
- * Function parameters for Lua functions and Lua standard library
  * Scoping of variables
  * Return types in current file
  * Better cache invalidation. Re-analyze any modules that may have been updated since analysis.
+ * UTF-8 support for variable names (server currently has a gmatch pattern that doesn't handle UTF-8.)
 
 ## Longshot
- * Return types for imported modules (would have to do full file analysis as opposed to just module analysis)
- * There is a lot more, I'm sure.
+The following would require full file analysis as opposed to just module-level analysis (some testing would have to be done as to if there is a speed difference):
+ * Return types for imported modules
+ * Determine if a function arg is optional or not
+
+## Impossible
+I have no idea if the following are even possible to do:
+ * Determine a C function's arguments
+
 
 # Installation
 1. Clone this repo
@@ -35,4 +43,4 @@ LuaComplete can currently help auto-complete:
 It currently returns a json blob, but should soon return a nice human readable list.
 
 # Notes
-This is still really experimental! Be careful using this as I'm currently changing how/what it outputs and things that may affect everyday use. I would be especially weary of interacting with the server without the client, as I may change the serde format in the future. The same general warning goes for using any of the analyze module functions.
+This is still really experimental! Be careful using this as I'm currently changing how/what it outputs and things that may affect everyday use. I would be especially weary of interacting with the server without the client, as I may change the serde format in the future. The same general warning goes for using any of the analyze module functions. Your best bet is to use the commandline interface or import the client (which could be useful if you're writing a Lua IDE in Lua).

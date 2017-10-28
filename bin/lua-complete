@@ -66,7 +66,7 @@ local function main(args)
         local server = require("lua-complete.server")
         commands = serverArgs:parse(args, 2)
         print(commands.port)
-        server(tonumber(commands.port))
+        server.main(tonumber(commands.port))
 
     else
         print("Mode must be either 'client' or 'server'")

@@ -6,6 +6,9 @@ local analyze = require "lua-complete.analyze"
 local moduleCache = {}
 local fileCache = {}
 
+-- set it up!
+local server = {}
+
 -- standard library
 local standardLibrary = {
     ["coroutine"] = true,
@@ -24,8 +27,10 @@ end
 
 -- an enum for looking at specific chars
 local chars = {
-    period = string.byte("."),
-    openBracket = string.byte("[")
+    [string.byte(".")] = true, -- table
+    [string.byte("[")] = true, -- table
+    [string.byte("(")] = true, -- func
+    [string.byte(":")] = true, -- func
 }
 
 -- a set for word boundaries
@@ -47,10 +52,30 @@ end
 
 local function getCursorVariable(src, cursor)
     local currentPos = string.byte(src, cursor)
-    if currentPos == chars.period or currentPos == chars.openBracket then
+    if chars[currentPos] then
         local start = stringReverseFind(src, cursor-1, wordBoundarySet)
-        return string.sub(src, start, cursor-1)
+        return string.sub(src, start, cursor-1), currentPos
     end
+end
+
+local function parseCursorVariable(src, cursor)
+    local cursorVariable, char = getCursorVariable(src, cursor)
+    print(cursorVariable, char)
+    -- probably missing an autocomplete trigger char
+    if cursorVariable == nil then
+        return nil, nil
+    end
+    local vars = {}
+    -- quick word iterator. Should cover most use cases.
+    for word in string.gmatch(cursorVariable, "%a+") do table.insert(vars, word) end
+    return vars, char
+end
+
+local function getTableInfo(t, cursorVariables, depth)
+    if cursorVariables[depth] == nil then
+        return t
+    end
+    return getTableInfo(t.table[cursorVariables[depth]], cursorVariables, depth+1)
 end
 
 local function processRequest(line)
@@ -77,29 +102,55 @@ local function processRequest(line)
 
     -- try to find the variable that the cursor is on.
     -- if it doesn't exist, we can't really do anything.
-    local cursorVariable = getCursorVariable(src, request["cursor"])
-    print(cursorVariable)
-    if not cursorVariable then print("no cursor found") return {} end
-    if standardLibrary[cursorVariable] then
-        return moduleCache[cursorVariable]
+    local cursorVariables, lastChar = parseCursorVariable(src, request["cursor"])
+    if not cursorVariables or not cursorVariables[1] then print("no cursor found") return {} end
+    local cursorVariable = cursorVariables[1]
+
+    local cursorLookupModule
+    -- look in file first, then stdlib as people may override stdlib names
+    if fileCache[filename][cursorVariable] then
+        cursorLookupModule = fileCache[filename][cursorVariable]
+    elseif standardLibrary[cursorVariable] then
+        cursorLookupModule = cursorVariable
+    else
+        print("something's out of bounds")
+        return {}
     end
-    local cursorLookupModule = fileCache[filename][cursorVariable]
+
+    -- traverse to the lastTable
+    local lastTable = getTableInfo(moduleCache[cursorLookupModule], cursorVariables, 2)
 
     -- print("cursorLookupModule", cursorLookupModule)
+    local output = {}
     if cursorLookupModule then
-        return moduleCache[cursorLookupModule]
+
+        -- return all the things/types in the table
+        if lastTable.type == "table" then
+            for k, v in pairs(lastTable.table) do
+                table.insert(output, {name=k, type=v.type})
+            end
+            -- return lastTable
+
+        -- if it's a function return function params
+        elseif lastTable.type == "function" then
+            if lastTable["function"].what == "Lua" then
+                output = lastTable["function"].paramList
+            end
+            -- return lastTable
+        end
     end
+    return output
 end
 
-local function main(port)
+function server.main(port)
     -- create a TCP socket and bind it to the local host, at any port
-    local server = assert(socket.bind("*", port or 51371))
+    local serverSocket = assert(socket.bind("*", port or 51371))
 
     -- keep everything up and running
     local running = true
     while running do
         -- wait for a connection from any client
-        local client = server:accept()
+        local client = serverSocket:accept()
         client:settimeout(10)
 
         -- receive the line
@@ -125,4 +176,12 @@ local function main(port)
     end
 end
 
-return main
+-- useful when testing the private funcs
+if _TEST then
+    server._TEST = {
+        ["getCursorVariable"] = getCursorVariable,
+        ["parseCursorVariable"] = parseCursorVariable
+    }
+end
+
+return server

@@ -122,14 +122,22 @@ function analyze.analyzeLuaFunc(func)
 
     -- going into the code!
     local paramCount = info.nparams
-    local isVarArg = info.isvararg
+    local isVarArg = info.isVarArg
     local paramNameList = {}
     for i = 1, paramCount do
         local param_name = debug.getlocal(func, i)
         paramNameList[i] = param_name
     end
+
+    -- add the ...'s for varargs
+    if isVarArg then
+        paramNameList[paramCount+1] = "..."
+    end
+
+    -- build up the output
     out["paramList"] = paramNameList
-    out["isVarArg"] = isVarArg
+    -- out["paramCount"] = paramCount
+    -- out["isVarArg"] = isVarArg
     return out
 end
 
@@ -148,7 +156,6 @@ function analyze.analyzeTable(t)
             out[k]["function"] = analyze.analyzeLuaFunc(v)
         end
     end
-    pretty.dump(out)
     return out
 end
 
@@ -162,7 +169,7 @@ function analyze.analyzeModule(module)
     elseif type(analyzedModule) == "function" then
         output["function"] = analyze.analyzeLuaFunc(analyzedModule)
     end
-    pretty.dump(output)
+    -- pretty.dump(output)
     return output
 end
 

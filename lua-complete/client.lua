@@ -59,6 +59,7 @@ function client.sendRequest(filename, cursorOffset, port)
 
     -- print("passing back request")
     local response = cjson.decode(packedResponse)
+    return response
     -- print(response.src)
 end
 
