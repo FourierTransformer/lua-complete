@@ -14,7 +14,7 @@ LuaComplete can currently help auto-complete:
  * Add include paths (can then handle project-level modules)
  * Table completions
  * Function parameters for Lua functions defined in file
- * Completions of Lua's 'self' with colon operator
+ * Completions of Lua's 'self' with colon operator (partial)
  * Scoping of variables
  * Return types in current file
  * Better cache invalidation. Re-analyze any modules that may have been updated since analysis.
@@ -23,7 +23,7 @@ LuaComplete can currently help auto-complete:
 ## Longshot
 The following would require full file analysis as opposed to just module-level analysis (some testing would have to be done as to if there is a speed difference):
  * Return types for imported modules
- * Determine if a function arg is optional or not
+ * Determine if a Lua module function arg is optional or not
 
 ## Impossible
 I have no idea if the following are even possible to do:

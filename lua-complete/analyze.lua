@@ -36,8 +36,8 @@ local function findEquals(t, output, line)
 
                 elseif t[2][i].tag == "Table" then
                     -- we'll get table info later...
-                    -- print("Table")
-                    -- pretty.dump(t[2][i])
+                    print("Table")
+                    pretty.dump(t[2][i])
                 end
             end
             -- print("\n")
@@ -65,6 +65,31 @@ local function analyzeAST(t, output)
     return output
 end
 
+-- error handler that *will* get the AST even if the parse fails.
+-- NOTE: This gets kidna dangerous. I'm hoping to avoid doing this
+-- in the future.
+local function getAST()
+    local name, value
+    -- the first few levels are c/lua/syntax errors
+    -- also, this could potentially be a moving target.
+    for level = 11, 5, -1 do
+        local i = 1
+        while true do
+            name, value = debug.getlocal(level, i)
+            -- when nil, there are no more things to check.
+            if name == nil then break end
+
+            -- the variable is called "block"
+            if name == "block" then
+                -- print("found it")
+                return value
+            end
+
+            i = i + 1
+        end
+    end
+end
+
 -- returns nil if it can't parse or the analyzed ast
 function analyze.analyzeSource(src)
     -- print("generating ast...")
@@ -74,28 +99,6 @@ function analyze.analyzeSource(src)
     -- lua 5.1 compat...
     local function parserParse()
         return parser.parse(src)
-    end
-
-    local function getAST()
-        local name, value
-        -- the first few levels are c/lua/syntax errors
-        -- also, this could potentially be a moving target.
-        for level = 11, 5, -1 do
-            local i = 1
-            while true do
-                name, value = debug.getlocal(level, i)
-                -- when nil, there are no more things to check.
-                if name == nil then break end
-
-                -- the variable is called "block"
-                if name == "block" then
-                    -- print("found it")
-                    return value
-                end
-
-                i = i + 1
-            end
-        end
     end
 
     -- local status, ast = pcall(parser.parse, src)
@@ -112,7 +115,7 @@ function analyze.analyzeSource(src)
 end
 
 -- adapted from https://facepunch.com/showthread.php?t=884409
-function analyze.analyzeLuaFunc(func)
+local function analyzeLuaFunc(func)
     local info = debug.getinfo(func, "uS")
     local out = {what = info.what}
     -- can't do anything with a c function
@@ -141,7 +144,7 @@ function analyze.analyzeLuaFunc(func)
     return out
 end
 
-function analyze.analyzeTable(t)
+local function analyzeTable(t)
     local out = {}
     local valueType
     for k, v in pairs(t) do
@@ -151,9 +154,9 @@ function analyze.analyzeTable(t)
         -- get information about sub-tables
         -- avoid metatables. recursion for days.
         if k ~= "__index" and valueType == "table" then
-            out[k]["table"] = analyze.analyzeTable(v)
+            out[k]["table"] = analyzeTable(v)
         elseif valueType == "function" then
-            out[k]["function"] = analyze.analyzeLuaFunc(v)
+            out[k]["function"] = analyzeLuaFunc(v)
         end
     end
     return out
@@ -165,11 +168,11 @@ function analyze.analyzeModule(module)
     local moduleType = type(analyzedModule)
     local output = {["type"] = moduleType}
     if type(analyzedModule) == "table" then
-        output["table"] = analyze.analyzeTable(analyzedModule)
+        output["table"] = analyzeTable(analyzedModule)
     elseif type(analyzedModule) == "function" then
-        output["function"] = analyze.analyzeLuaFunc(analyzedModule)
+        output["function"] = analyzeLuaFunc(analyzedModule)
     end
-    -- pretty.dump(output)
+    pretty.dump(output)
     return output
 end
 

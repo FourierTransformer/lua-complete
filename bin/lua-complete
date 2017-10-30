@@ -58,7 +58,18 @@ local function main(args)
         if commands["shutdown"] then
             client.shutdown(commands.shutdown)
         else
-            client.sendRequest(commands.file, commands.cursor, tonumber(commands.port))
+            local resp = client.sendRequest(commands.file, commands.cursor, tonumber(commands.port))
+            print(resp.type)
+            if resp.type == "function" then
+                for _, v in ipairs(resp.info) do
+                    print(v)
+                end
+
+            elseif resp.type == "table" then
+                for _, v in ipairs(resp.info) do
+                    print(string.format("%s: %s", v.name, v.type))
+                end
+            end
         end
 
     -- fire up the server

@@ -1,6 +1,5 @@
 local server
 local parser = require("luacheck.parser")
-local pprint = require("pl.pretty").dump
 
 describe("Going to test a private element", function()
 

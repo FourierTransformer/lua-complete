@@ -55,7 +55,7 @@ function client.sendRequest(filename, cursorOffset, port)
     -- print("sending request")
     local packedMessage = cjson.encode(request)
     local packedResponse = sendMessage(packedMessage, host, port)
-    print(packedResponse)
+    -- print(packedResponse)
 
     -- print("passing back request")
     local response = cjson.decode(packedResponse)

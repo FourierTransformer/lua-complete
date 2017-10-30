@@ -1,6 +1,7 @@
 local socket = require("socket")
 local cjson = require("cjson")
 local analyze = require "lua-complete.analyze"
+-- local util = require "lua-complete.util"
 
 -- set up my caches
 local moduleCache = {}
@@ -25,12 +26,18 @@ for k, _ in pairs(standardLibrary) do
     moduleCache[k] = analyze.analyzeModule(k)
 end
 
--- an enum for looking at specific chars
-local chars = {
+-- enums for looking at specific chars
+local autoCompleteTableChars = {
     [string.byte(".")] = true, -- table
     [string.byte("[")] = true, -- table
+    [string.byte(":")] = true, -- func, table.
+}
+local autoCompleteFunctionChars = {
     [string.byte("(")] = true, -- func
-    [string.byte(":")] = true, -- func
+}
+
+local chars = {
+    ["colon"] = string.byte(":")
 }
 
 -- a set for word boundaries
@@ -52,7 +59,7 @@ end
 
 local function getCursorVariable(src, cursor)
     local currentPos = string.byte(src, cursor)
-    if chars[currentPos] then
+    if autoCompleteTableChars[currentPos] or autoCompleteFunctionChars[currentPos] then
         local start = stringReverseFind(src, cursor-1, wordBoundarySet)
         return string.sub(src, start, cursor-1), currentPos
     end
@@ -74,6 +81,9 @@ end
 local function getTableInfo(t, cursorVariables, depth)
     if cursorVariables[depth] == nil then
         return t
+    end
+    if t.table[cursorVariables[depth]].type ~= "table" then
+        return nil
     end
     return getTableInfo(t.table[cursorVariables[depth]], cursorVariables, depth+1)
 end
@@ -98,11 +108,15 @@ local function processRequest(line)
                 end
             end
         end
+    else
+        print("analysis wasn't completed successfully")
     end
 
     -- try to find the variable that the cursor is on.
     -- if it doesn't exist, we can't really do anything.
     local cursorVariables, lastChar = parseCursorVariable(src, request["cursor"])
+    print(cursorVariables[1], lastChar)
+    print(cursorVariables[2])
     if not cursorVariables or not cursorVariables[1] then print("no cursor found") return {} end
     local cursorVariable = cursorVariables[1]
 
@@ -119,22 +133,35 @@ local function processRequest(line)
 
     -- traverse to the lastTable
     local lastTable = getTableInfo(moduleCache[cursorLookupModule], cursorVariables, 2)
+    if lastTable == nil then return {} end
 
     -- print("cursorLookupModule", cursorLookupModule)
-    local output = {}
+    local output = {["type"] = lastTable.type, ["info"] = {}}
     if cursorLookupModule then
 
         -- return all the things/types in the table
-        if lastTable.type == "table" then
-            for k, v in pairs(lastTable.table) do
-                table.insert(output, {name=k, type=v.type})
+        if lastTable.type == "table" and autoCompleteTableChars[lastChar] then
+            -- if the function is a colon, and the first argument is self,
+            -- lua uses syntactic sugar to make life easier, so this accounts for it
+            if lastChar == chars.colon then
+                for k, v in pairs(lastTable.table) do
+                    if v.type == "function" then
+                        if v["function"].paramList and v["function"].paramList[1] == "self" then
+                            table.insert(output.info, {name=k, type=v.type})
+                        end
+                    end
+                end
+            else
+                for k, v in pairs(lastTable.table) do
+                    table.insert(output.info, {name=k, type=v.type})
+                end
             end
             -- return lastTable
 
         -- if it's a function return function params
-        elseif lastTable.type == "function" then
+        elseif lastTable.type == "function" and autoCompleteFunctionChars[lastChar] then
             if lastTable["function"].what == "Lua" then
-                output = lastTable["function"].paramList
+                output.info = lastTable["function"].paramList
             end
             -- return lastTable
         end
