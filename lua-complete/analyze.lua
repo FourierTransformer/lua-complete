@@ -1,5 +1,5 @@
 local parser = require("luacheck.parser")
-local pretty = require 'pl.pretty'
+-- local pretty = require 'pl.pretty'
 
 local analyze = {}
 
@@ -8,8 +8,37 @@ local function findEquals(t, output, line)
     -- something is equal to something else!
     if t.equals_location then
         for i = 1, #t[1] do
+            if t[1][i].tag == "Index" and t[2][i] and t[2][i].tag then
+
+                -- I'm not dealing with tables in tables yet.
+                local currentTable = t[1][i][1]
+                if currentTable.tag ~= "Index" then
+                    if output.variables[currentTable[1]] then
+                        -- add value to currentTable in outputvariables
+                        output.variables[currentTable[1]].table[t[1][i][2][1]] = {
+                            ["type"] = string.lower(t[2][i].tag)
+                        }
+                    -- else
+                        -- pretty.dump(currentTable)
+                    end
+                end
+                -- print()
+                -- pretty.dump(t[1])
+                -- for _, entry in ipairs(t[1][i]) do
+                --     print(entry.tag, entry[1])
+                -- end
+                -- print("EQUALS")
+                -- print(t[2][i][1], t[2][i].tag)
+                -- pretty.dump(t[2][i])
+                -- print()
+                -- for _, entry in ipairs(t[2][i]) do
+                --     print(entry.tag, entry[1])
+                -- end
+                -- pretty.dump(t[1][i])
+                -- pretty.dump(t[2][i])
+
             -- if there's a variable assignment
-            if t[1][i].tag == "Id" and t[2][i] and t[2][i].tag then
+            elseif t[1][i].tag == "Id" and t[2][i] and t[2][i].tag then
                 if t[2][i][1] and t[2][i][2] and
                     t[2][i][1].tag == "Id" and t[2][i][1][1] == "require" and
                     t[2][i][2].tag == "String" then
@@ -29,15 +58,34 @@ local function findEquals(t, output, line)
                     -- print(t[2][i][1][1]) -- require
                     -- print(t[2][i][2][1]) -- hexafont
 
-                elseif t[2][i].tag == "Call" then
+                -- elseif t[2][i].tag == "Call" then
                     -- we might be able to do some type things here
                     -- print("Call")
                     -- pretty.dump(t[2][i])
 
                 elseif t[2][i].tag == "Table" then
                     -- we'll get table info later...
-                    print("Table")
-                    pretty.dump(t[2][i])
+                    -- print("Table", t[1][i][1])
+                    local newTable = t[1][i][1]
+                    output.variables[newTable] = {
+                        ["type"] = "table",
+                        ["table"] = {},
+                        ["location"] = line
+                    }
+                    -- for j = 1, #t[2][i] do
+                    for _, entry in ipairs(t[2][i]) do
+
+                        -- should add the key and type into the output table
+                        output.variables[newTable].table[entry[1][1]] = {
+                            ["type"] = string.lower(entry[2].tag)
+                        }
+                        -- print(entry[1][1])
+                        -- print(entry[2].tag)
+                        -- print(entry.tag)
+                    end
+
+                    -- print(#t[2][i])
+                    -- print(t[2][i][1].tag)
                 end
             end
             -- print("\n")
@@ -50,7 +98,8 @@ local function analyzeAST(t, output)
     -- yay recursion! create output if it doesn't exist
     if not output then
         output = {
-            ["modules"] = {}
+            ["modules"] = {},
+            ["variables"] = {}
         }
     end
 
@@ -110,7 +159,7 @@ function analyze.analyzeSource(src)
 
     -- print("analyzing ast...")
     local assignments = analyzeAST(ast)
-    pretty.dump(assignments)
+    -- pretty.dump(assignments)
     return assignments
 end
 
@@ -172,7 +221,7 @@ function analyze.analyzeModule(module)
     elseif type(analyzedModule) == "function" then
         output["function"] = analyzeLuaFunc(analyzedModule)
     end
-    pretty.dump(output)
+    -- pretty.dump(output)
     return output
 end
 

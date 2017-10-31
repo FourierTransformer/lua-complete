@@ -122,17 +122,19 @@ local function processRequest(line)
 
     local cursorLookupModule
     -- look in file first, then stdlib as people may override stdlib names
-    if fileCache[filename][cursorVariable] then
-        cursorLookupModule = fileCache[filename][cursorVariable]
+    if analysis.variables[cursorVariable] then
+        cursorLookupModule = analysis.variables[cursorVariable]
+    elseif fileCache[filename][cursorVariable] then
+        cursorLookupModule = moduleCache[fileCache[filename][cursorVariable]]
     elseif standardLibrary[cursorVariable] then
-        cursorLookupModule = cursorVariable
+        cursorLookupModule = moduleCache[cursorVariable]
     else
         print("something's out of bounds")
         return {}
     end
 
     -- traverse to the lastTable
-    local lastTable = getTableInfo(moduleCache[cursorLookupModule], cursorVariables, 2)
+    local lastTable = getTableInfo(cursorLookupModule, cursorVariables, 2)
     if lastTable == nil then return {} end
 
     -- print("cursorLookupModule", cursorLookupModule)
@@ -152,8 +154,11 @@ local function processRequest(line)
                     end
                 end
             else
-                for k, v in pairs(lastTable.table) do
-                    table.insert(output.info, {name=k, type=v.type})
+                -- some variables don't get fully explored...
+                if lastTable.table then
+                    for k, v in pairs(lastTable.table) do
+                        table.insert(output.info, {name=k, type=v.type})
+                    end
                 end
             end
             -- return lastTable
