@@ -9,13 +9,13 @@ LuaComplete can currently help auto-complete:
  * Lua standard library functions (except the packages module)
  * Completion of Lua's 'self' with colon operator (mostly, currently doesn't filter out "self" from function list) in imported modules
  * Table completions in current file (not-including sub-tables...)
+ * Function parameters for Lua functions (in current file)
 
 ## In the future
- * Function parameters for Lua functions (in current file)
  * Add include paths (can then handle project-level modules)
  * Better cache invalidation. Re-analyze any project-level modules that may have been updated since analysis.
  * UTF-8 support for variable names (server currently has a gmatch pattern that doesn't handle UTF-8.)
- * Subtables in current file.
+ * Subtables (and functions in tables) in current file.
 
 ## Longshot
 The following would require full file analysis as opposed to just module-level analysis (some testing would have to be done as to if there is a speed difference):
@@ -39,7 +39,7 @@ I have no idea if the following are even possible to do in pure Lua:
 2. Send a file and cursor position (in bytes) to the server:
   * `lua-complete client -f <filename> -c <cursor_position>`
 
-It currently returns the type of completion (either "table" or "function") and any values/types that it knows about.
+It currently returns the type of completion (either "table" or "function") and any values/types that it knows about. NOTE: The cursor has to be at the position of the ".", ":", "[" or "(" to do any completions.
 
 Example:
 ```

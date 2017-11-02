@@ -1,10 +1,13 @@
 local parser = require("luacheck.parser")
--- local pretty = require 'pl.pretty'
+local pretty = require 'pl.pretty'
 
 local analyze = {}
 
 -- a basic findEquals. Could one day do a lot more, but starting small for now.
-local function findEquals(t, output, line)
+local function findEquals(fullTable, output, line)
+    -- for analyzing the current line
+    local t = fullTable[line]
+
     -- something is equal to something else!
     if t.equals_location then
         for i = 1, #t[1] do
@@ -62,6 +65,16 @@ local function findEquals(t, output, line)
                     -- we might be able to do some type things here
                     -- print("Call")
                     -- pretty.dump(t[2][i])
+                elseif t[2][i].tag == "Function" then
+                    local functionName = t[1][i][1]
+                    output.variables[functionName] = {
+                        ["type"] = "function",
+                        ["function"] = {["paramList"] = {}},
+                        ["location"] = line
+                    }
+                    for j, param in ipairs(t[2][i][1]) do
+                        output.variables[functionName]["function"].paramList[j] = param[1]
+                    end
 
                 elseif t[2][i].tag == "Table" then
                     -- we'll get table info later...
@@ -90,6 +103,18 @@ local function findEquals(t, output, line)
             end
             -- print("\n")
         end
+    elseif t.tag == "Function" then
+        if fullTable[line-1] ~= nil then
+            local functionName = fullTable[line-1][1]
+            output.variables[functionName] = {
+                ["type"] = "function",
+                ["function"] = {["paramList"] = {}},
+                ["location"] = line
+            }
+            for j, param in ipairs(t[1]) do
+                output.variables[functionName]["function"].paramList[j] = param[1]
+            end
+        end
     end
     -- return output
 end
@@ -107,7 +132,7 @@ local function analyzeAST(t, output)
     if type(t) == "table" then
         for line = 1, #t do
             -- mergeTable(output, findEquals(t[line]))
-            findEquals(t[line], output, line)
+            findEquals(t, output, line)
             analyzeAST(t[line], output)
         end
     end
@@ -159,7 +184,7 @@ function analyze.analyzeSource(src)
 
     -- print("analyzing ast...")
     local assignments = analyzeAST(ast)
-    -- pretty.dump(assignments)
+    pretty.dump(assignments)
     return assignments
 end
 
