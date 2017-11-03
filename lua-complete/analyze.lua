@@ -13,16 +13,27 @@ local function findEquals(fullTable, output, line)
         for i = 1, #t[1] do
             if t[1][i].tag == "Index" and t[2][i] and t[2][i].tag then
 
+                -- parse through a table
                 -- I'm not dealing with tables in tables yet.
                 local currentTable = t[1][i][1]
                 if currentTable.tag ~= "Index" then
                     if output.variables[currentTable[1]] then
                         -- add value to currentTable in outputvariables
-                        output.variables[currentTable[1]].table[t[1][i][2][1]] = {
+                        local varName = t[1][i][2][1]
+                        output.variables[currentTable[1]].table[varName] = {
                             ["type"] = string.lower(t[2][i].tag)
                         }
                     -- else
-                        -- pretty.dump(currentTable)
+                        if t[2][i].tag == "Function" then
+                            output.variables[currentTable[1]].table[varName]["function"] = {
+                                ["paramList"] = {},
+                                ["location"] = line,
+                                ["what"] = "Lua"
+                            }
+                            for j, param in ipairs(t[2][i][1]) do
+                                output.variables[currentTable[1]].table[varName]["function"].paramList[j] = param[1]
+                            end
+                        end
                     end
                 end
                 -- print()
@@ -40,7 +51,7 @@ local function findEquals(fullTable, output, line)
                 -- pretty.dump(t[1][i])
                 -- pretty.dump(t[2][i])
 
-            -- if there's a variable assignment
+            -- if there's a module assignment
             elseif t[1][i].tag == "Id" and t[2][i] and t[2][i].tag then
                 if t[2][i][1] and t[2][i][2] and
                     t[2][i][1].tag == "Id" and t[2][i][1][1] == "require" and
@@ -108,8 +119,11 @@ local function findEquals(fullTable, output, line)
             local functionName = fullTable[line-1][1]
             output.variables[functionName] = {
                 ["type"] = "function",
-                ["function"] = {["paramList"] = {}},
-                ["location"] = line
+                ["function"] = {
+                    ["paramList"] = {},
+                    ["location"] = line,
+                    ["what"] = "Lua"
+                }
             }
             for j, param in ipairs(t[1]) do
                 output.variables[functionName]["function"].paramList[j] = param[1]
@@ -146,7 +160,7 @@ local function getAST()
     local name, value
     -- the first few levels are c/lua/syntax errors
     -- also, this could potentially be a moving target.
-    for level = 11, 5, -1 do
+    for level = 5, 15 do
         local i = 1
         while true do
             name, value = debug.getlocal(level, i)

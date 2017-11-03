@@ -2,15 +2,6 @@ local socket = require("socket")
 local cjson = require("cjson")
 local client = {}
 
--- load an entire file into memory
-local function loadFile(textFile)
-    local file = io.open(textFile, "r")
-    if not file then error("File not found at " .. textFile) end
-    local allLines = file:read("*all")
-    file:close()
-    return allLines
-end
-
 -- send any generic message (a request or not) to the server
 local function sendMessage(message, host, port)
      -- create a tcp connection
@@ -39,7 +30,7 @@ local function sendMessage(message, host, port)
     return response
 end
 
-function client.sendRequest(filename, cursorOffset, port)
+function client.sendRequest(filename, src, cursorOffset, port)
     -- default host and port
     local host = "127.0.0.1"
 
@@ -47,7 +38,7 @@ function client.sendRequest(filename, cursorOffset, port)
     -- the main request body
     local request = {
         filename = filename,
-        src = loadFile(filename),
+        src = src,
         cursor = cursorOffset
     }
 

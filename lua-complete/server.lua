@@ -1,7 +1,6 @@
 local socket = require("socket")
 local cjson = require("cjson")
 local analyze = require "lua-complete.analyze"
--- local util = require "lua-complete.util"
 
 -- set up my caches
 local moduleCache = {}
@@ -82,9 +81,6 @@ local function getTableInfo(t, cursorVariables, depth)
     if cursorVariables[depth] == nil then
         return t
     end
-    if t.table[cursorVariables[depth]].type ~= "table" then
-        return nil
-    end
     return getTableInfo(t.table[cursorVariables[depth]], cursorVariables, depth+1)
 end
 
@@ -110,13 +106,13 @@ local function processRequest(line)
         end
     else
         print("analysis wasn't completed successfully")
+        return {}
     end
 
     -- try to find the variable that the cursor is on.
     -- if it doesn't exist, we can't really do anything.
     local cursorVariables, lastChar = parseCursorVariable(src, request["cursor"])
     print(cursorVariables[1], lastChar)
-    print(cursorVariables[2])
     if not cursorVariables or not cursorVariables[1] then print("no cursor found") return {} end
     local cursorVariable = cursorVariables[1]
 
@@ -135,9 +131,8 @@ local function processRequest(line)
 
     -- traverse to the lastTable
     local lastTable = getTableInfo(cursorLookupModule, cursorVariables, 2)
-    if lastTable == nil then return {} end
+    if lastTable == nil then print("lastTable is nil") return {} end
 
-    -- print("cursorLookupModule", cursorLookupModule)
     local output = {["type"] = lastTable.type, ["info"] = {}}
     if cursorLookupModule then
 
@@ -161,14 +156,12 @@ local function processRequest(line)
                     end
                 end
             end
-            -- return lastTable
 
         -- if it's a function return function params
         elseif lastTable.type == "function" and autoCompleteFunctionChars[lastChar] then
             if lastTable["function"].what == "Lua" then
                 output.info = lastTable["function"].paramList
             end
-            -- return lastTable
         end
     end
     return output
