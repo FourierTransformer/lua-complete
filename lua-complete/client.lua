@@ -30,7 +30,7 @@ local function sendMessage(message, host, port)
     return response
 end
 
-function client.sendRequest(filename, src, cursorOffset, port)
+function client.sendRequest(filename, src, cursorOffset, packagePath, port)
     -- default host and port
     local host = "127.0.0.1"
 
@@ -39,7 +39,8 @@ function client.sendRequest(filename, src, cursorOffset, port)
     local request = {
         filename = filename,
         src = src,
-        cursor = cursorOffset
+        cursor = cursorOffset,
+        packagePath = packagePath
     }
 
     -- SEND IT!

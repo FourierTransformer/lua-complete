@@ -10,9 +10,9 @@ LuaComplete can currently help auto-complete:
  * Completion of Lua's 'self' with colon operator (mostly, currently doesn't filter out "self" from function list) in imported modules
  * Table completions in current file (not-including sub-tables...)
  * Function parameters for Lua functions (in current file)
+ * Add include paths (can then handle project-level modules)
 
 ## In the future
- * Add include paths (can then handle project-level modules)
  * Better cache invalidation. Re-analyze any project-level modules that may have been updated since analysis.
  * UTF-8 support for variable names (server currently has a gmatch pattern that doesn't handle UTF-8.)
  * Subtables in current file.

@@ -2,6 +2,7 @@ local parser = require("luacheck.parser")
 local pretty = require 'pl.pretty'
 
 local analyze = {}
+analyze.defaultPackagePath = package.path
 
 -- a basic findEquals. Could one day do a lot more, but starting small for now.
 local function findEquals(fullTable, output, line)
@@ -250,9 +251,24 @@ local function analyzeTable(t)
     return out
 end
 
-function analyze.analyzeModule(module)
-    print("analyze", module)
-    local analyzedModule = require(module)
+function analyze.analyzeModule(module, packagePath)
+    print("analyzeModule", module)
+    if packagePath then
+        print("special package")
+        package.path = package.path .. ";" .. packagePath .. "/?.lua"
+    end
+    local status, analyzedModule = pcall(require, module)
+
+    -- failed to load
+    if not status then
+        print("Failed to analyze", module)
+        if packagePath then
+            package.path = analyze.defaultPackagePath
+        end
+        return nil
+    end
+
+    -- go in for more info
     local moduleType = type(analyzedModule)
     local output = {["type"] = moduleType}
     if type(analyzedModule) == "table" then
@@ -260,7 +276,13 @@ function analyze.analyzeModule(module)
     elseif type(analyzedModule) == "function" then
         output["function"] = analyzeLuaFunc(analyzedModule)
     end
-    -- pretty.dump(output)
+    -- clear the module out of the cache.
+    package.loaded[module] = nil
+    -- reset the package path if needed
+    if packagePath then
+        pretty.dump(output)
+        package.path = analyze.defaultPackagePath
+    end
     return output
 end
 

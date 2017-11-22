@@ -73,7 +73,8 @@ local function parseCursorVariable(src, cursor)
     end
     local vars = {}
     -- quick word iterator. Should cover most use cases.
-    for word in string.gmatch(cursorVariable, "%a+") do table.insert(vars, word) end
+    -- %w is used to find alphanumeric values - hopefully being the variable names
+    for word in string.gmatch(cursorVariable, "%w+") do table.insert(vars, word) end
     return vars, char
 end
 
@@ -86,24 +87,66 @@ end
 
 local function processRequest(line)
     print("PROCESS REQUEST")
+    -- get the things from the request
     local request = cjson.decode(line)
     local src = request["src"]
     local filename = request["filename"]
+    local packagePath = request["packagePath"]
+
+    -- create a filecache if it doens't exist already
     if not fileCache[filename] then print("creating file cache") fileCache[filename] = {} end
 
     -- try to analyze the source code.
     local analysis = analyze.analyzeSource(src)
+
     if analysis then
+
+        -- go through and analyze the existing modules
         for variable, moduleInfo in pairs(analysis.modules) do
+
+            -- check if it's already been analyzed for the
+            -- variable in the current file
             if not fileCache[filename][variable] then
                 print("analyzed variable", variable)
-                fileCache[filename][variable] = moduleInfo.module
+
+                -- set the filename -> variable to the module name
+                fileCache[filename][variable] = {
+                    ["name"] = moduleInfo.module,
+                    ["type"] = nil
+                }
+
+                -- cache the module in moduleCache
+                -- the idea is you can do a lookup for system modules
+                -- (as they dont change frequently) and only really need to
+                -- analyze them once
                 print("fileCache variable name", fileCache[filename][variable])
                 if not moduleCache[moduleInfo.module] then
-                    moduleCache[moduleInfo.module] = analyze.analyzeModule(moduleInfo.module)
+                    local analyzedModule = analyze.analyzeModule(moduleInfo.module)
+                    if analyzedModule then
+                        moduleCache[moduleInfo.module] = analyze.analyzeModule(moduleInfo.module)
+                        fileCache[filename][variable].type = "system"
+                    else
+                        moduleCache[moduleInfo.module] = analyze.analyzeModule(moduleInfo.module, packagePath)
+                        fileCache[filename][variable].type = "local"
+                    end
+                end
+
+                -- TODO: figure out what happens if the analyzeModule require fails.
+                -- update the path with the current file location
+                -- check if the module has been analyzed
+                -- if so: check the last modified date and see if it's changed
+                --   if so: re-analyze the module
+                -- if not: try to analyze the module
+            elseif fileCache[filename][variable].type == "local" then
+                print("\nlocal fileCache. RESCANNNN!!!")
+                local analyzedModule = analyze.analyzeModule(moduleInfo.module, packagePath)
+                if analyzedModule then
+                    moduleCache[moduleInfo.module] = analyzedModule
                 end
             end
+
         end
+        print("module analysis complete")
     else
         print("analysis wasn't completed successfully")
         return {}
@@ -112,20 +155,24 @@ local function processRequest(line)
     -- try to find the variable that the cursor is on.
     -- if it doesn't exist, we can't really do anything.
     local cursorVariables, lastChar = parseCursorVariable(src, request["cursor"])
-    print(cursorVariables[1], lastChar)
     if not cursorVariables or not cursorVariables[1] then print("no cursor found") return {} end
+    print("twice", cursorVariables[1], lastChar)
     local cursorVariable = cursorVariables[1]
 
+    -- keep track of the analyzed module
     local cursorLookupModule
     -- look in file first, then stdlib as people may override stdlib names
     if analysis.variables[cursorVariable] then
         cursorLookupModule = analysis.variables[cursorVariable]
     elseif fileCache[filename][cursorVariable] then
-        cursorLookupModule = moduleCache[fileCache[filename][cursorVariable]]
+        print("found in file cache")
+        print(fileCache[filename][cursorVariable].name)
+        cursorLookupModule = moduleCache[fileCache[filename][cursorVariable].name]
+        print(cursorLookupModule)
     elseif standardLibrary[cursorVariable] then
         cursorLookupModule = moduleCache[cursorVariable]
     else
-        print("something's out of bounds")
+        print("cursorVariable not found in any lookup", cursorVariable)
         return {}
     end
 

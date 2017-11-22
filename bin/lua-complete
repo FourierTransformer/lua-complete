@@ -1,6 +1,7 @@
 #!/usr/bin/env lua
-local VERSION = "0.0.1"
+local VERSION = "0.0.0"
 local ArgParse = require("lua-complete.argparse")
+local lfs = require("lfs")
 
 -- function overrides
 function ArgParse.printFullHelp(serverArgs, clientArgs)
@@ -40,15 +41,16 @@ end
 local function main(args)
 
     local serverArgs = ArgParse:new()
-    serverArgs:add("p", "port", "port number to run the server on (51371)", true, nil, "51371")
+    serverArgs:add("p", "port", "port number to run the server on (default: 51371)", true, nil, "51371")
 
     local clientArgs = ArgParse:new()
     clientArgs:add("f", "file", "path to file for autocompletion", true)
     clientArgs:add("c", "cursor", "cursor offset (in bytes) of variable to analyze", true)
-    clientArgs:add("p", "port", "port number to connect to (51371)", true, nil, "51371")
+    clientArgs:add("p", "port", "port number to connect to (default: 51371)", true, nil, "51371")
+    clientArgs:add("r", "packagePath", "path to load packages from (default: current dir)", true, nil, lfs.currentdir())
     -- technically a flag and not an arg
     -- gonna do some minor hacks to get this going.
-    clientArgs:add("x", "shutdown", "shutdown the server on a specified port (51371)", false, true, "51371")
+    clientArgs:add("x", "shutdown", "shutdown the server on a specified port (default: 51371)", false, true, "51371")
 
     if ArgParse.commonHelp[args[1]] then
         ArgParse.printFullHelp(serverArgs, clientArgs)
@@ -69,7 +71,8 @@ local function main(args)
         else
             local resp = client.sendRequest(
                 commands.file, loadFile(commands.file),
-                commands.cursor, tonumber(commands.port)
+                commands.cursor, commands.packagePath,
+                tonumber(commands.port)
             )
             print(resp.type)
             if resp.type == "function" then

@@ -15,7 +15,8 @@ description = {
 dependencies = {
     "lua >= 5.1, < 5.4",
     "luacheck >= 0.21, < 0.22",
-    "lua-cjson"
+    "lua-cjson",
+    "luafilesystem"
 }
 
 build = {
