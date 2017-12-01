@@ -14,8 +14,10 @@ LuaComplete can currently help auto-complete:
 
 ## In the future
  * Better cache invalidation. Re-analyze any project-level modules that may have been updated since analysis.
- * UTF-8 support for variable names (server currently has a gmatch pattern that doesn't handle UTF-8.)
  * Subtables in current file.
+ * Add completions for standard library (and possibly other popular libraries)
+ * Add ability to load custom completions
+ * UTF-8 support for variable names (server currently has a gmatch pattern that doesn't handle UTF-8 well.)
 
 ## Longshot
 The following would require full file analysis as opposed to just module-level analysis (some testing would have to be done as to if there is a speed difference):

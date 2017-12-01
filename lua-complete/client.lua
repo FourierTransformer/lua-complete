@@ -44,12 +44,11 @@ function client.sendRequest(filename, src, cursorOffset, packagePath, port)
     }
 
     -- SEND IT!
-    -- print("sending request")
     local packedMessage = cjson.encode(request)
     local packedResponse = sendMessage(packedMessage, host, port)
-    -- print(packedResponse)
 
     -- print("passing back request")
+    -- print(packedResponse)
     local response = cjson.decode(packedResponse)
     return response
     -- print(response.src)
@@ -63,7 +62,7 @@ function client.shutdown(port)
         print(value)
         os.exit(0)
     else
-        error("Value not send back from server. Might already by closed.")
+        print("No response from server. Might already by closed.")
         os.exit(1)
     end
 end

@@ -1,4 +1,4 @@
-#!/usr/bin/env lua
+#!/usr/bin/env luajit
 local VERSION = "0.0.0"
 local ArgParse = require("lua-complete.argparse")
 local lfs = require("lfs")
@@ -12,7 +12,7 @@ function ArgParse.printFullHelp(serverArgs, clientArgs)
     serverArgs:print()
 
     print("\nClient options")
-    print("lua-complete client -f <file> -c <cursor> [-p <port>] [-x <port>]")
+    print("lua-complete client -c <cursor> [-f <file>] [-p <port>] [-i] [-x]")
     clientArgs:print()
 
     os.exit()
@@ -41,16 +41,15 @@ end
 local function main(args)
 
     local serverArgs = ArgParse:new()
-    serverArgs:add("p", "port", "port number to run the server on (default: 51371)", true, nil, "51371")
+    serverArgs:addArg("p", "port", "port number to run the server on (default: 51371)", true, "51371")
 
     local clientArgs = ArgParse:new()
-    clientArgs:add("f", "file", "path to file for autocompletion", true)
-    clientArgs:add("c", "cursor", "cursor offset (in bytes) of variable to analyze", true)
-    clientArgs:add("p", "port", "port number to connect to (default: 51371)", true, nil, "51371")
-    clientArgs:add("r", "packagePath", "path to load packages from (default: current dir)", true, nil, lfs.currentdir())
-    -- technically a flag and not an arg
-    -- gonna do some minor hacks to get this going.
-    clientArgs:add("x", "shutdown", "shutdown the server on a specified port (default: 51371)", false, true, "51371")
+    clientArgs:addArg("f", "filename", "path to file for autocompletion", false)
+    clientArgs:addArg("c", "cursor", "cursor offset (in bytes) of variable to analyze", true)
+    clientArgs:addArg("p", "port", "port number to connect to (default: 51371)", true, "51371")
+    clientArgs:addArg("r", "packagePath", "path to load packages from (default: current dir)", true, lfs.currentdir())
+    clientArgs:addFlag("x", "shutdown", "shutdown the server", true)
+    clientArgs:addFlag("i", "stdin", "read file from stdin. filename argument now used for cache filename")
 
     if ArgParse.commonHelp[args[1]] then
         ArgParse.printFullHelp(serverArgs, clientArgs)
@@ -67,22 +66,41 @@ local function main(args)
         commands = clientArgs:parse(args, 2)
         -- check for the override
         if commands["shutdown"] then
-            client.shutdown(commands.shutdown)
+            client.shutdown(commands.port)
         else
-            local resp = client.sendRequest(
-                commands.file, loadFile(commands.file),
-                commands.cursor, commands.packagePath,
-                tonumber(commands.port)
-            )
-            print(resp.type)
-            if resp.type == "function" then
-                for _, v in ipairs(resp.info) do
+            -- check for cursor (required if not doing a shutdown)
+
+            -- keep track of the response
+            local response
+            if commands.stdin then
+                -- read all of stdin
+                local stdin = io.read("*all")
+                commands.filename = commands.file or "stdin"
+                response = client.sendRequest(
+                    commands.filename, stdin,
+                    commands.cursor, commands.packagePath,
+                    tonumber(commands.port)
+                )
+            else
+                response = client.sendRequest(
+                    commands.filename, loadFile(commands.filename),
+                    commands.cursor, commands.packagePath,
+                    tonumber(commands.port)
+                )
+            end
+            print(response.type)
+            if response.type == "function" then
+                for _, v in ipairs(response.info) do
                     print(v)
                 end
 
-            elseif resp.type == "table" then
-                for _, v in ipairs(resp.info) do
-                    print(string.format("%s: %s", v.name, v.type))
+            elseif response.type == "table" then
+                for _, v in ipairs(response.info) do
+                    if v.type == "function" and v.paramList then
+                        print(string.format("%s: %s | %s", v.name, v.type, table.concat(v.paramList, ' ')))
+                    else
+                        print(string.format("%s: %s", v.name, v.type))
+                    end
                 end
             end
         end

@@ -18,6 +18,7 @@ ArgParse.versions = {
 function ArgParse:new(a)
     a = a or {
         validArgs = {},
+        validFlags = {},
         args = {}
     }
     setmetatable(a, self)
@@ -40,19 +41,33 @@ function ArgParse.printShortHelp(code)
 end
 
 -- a small add func
-function ArgParse:add(short, long, desc, required, override, default)
+function ArgParse:addArg(short, long, desc, required, default)
     local info = {
         short = short, desc = desc, required = required,
-        override = override, value=default
+        override = false, value=default
     }
     self.args[long] = info
     self.validArgs["-" .. short] = long
     self.validArgs["--" .. long] = long
 end
 
+function ArgParse:addFlag(short, long, desc, override)
+    local info = {
+        short = short, desc = desc, value = false,
+        required = false, override = override
+    }
+    self.args[long] = info
+    self.validFlags["-" .. short] = long
+    self.validFlags["--" .. long] = long
+end
+
+local function rightPad(str, amount)
+    return str .. string.rep(" ", amount - #str)
+end
+
 -- PRINT out the options!
 local function printOption(short, long, desc)
-    print(string.format(" -%s,  --%s\t\t%10s", short, long, desc))
+    print(string.format(" -%s,  --%s %s", short, rightPad(long, 12), desc))
 end
 function ArgParse:print()
     for arg, info in pairs(self.args) do
@@ -71,12 +86,20 @@ function ArgParse:parse(args, index)
     local currentArg
     local overrideFound = false
     for i = index, #args do
-        if self.validArgs[args[i]] then
-            currentArg = self.validArgs[args[i]]
+        -- try to find flags first
+        if self.validFlags[args[i]] then
+            -- if they exist, set value to true.
+            currentArg = self.validFlags[args[i]]
+            self.args[currentArg].value = true
             if self.args[currentArg].override then
                 overrideFound = true
             end
+
+        -- find argument
+        elseif self.validArgs[args[i]] then
+            currentArg = self.validArgs[args[i]]
         else
+            -- set value of arg on next pass
             self.args[currentArg].value = args[i]
         end
     end
@@ -85,15 +108,10 @@ function ArgParse:parse(args, index)
     -- keep track of all the set commands
     local commands = {}
 
+    -- set whatever values may exist (the defaults), and return the commands
     if overrideFound then
         for k, v in pairs(self.args) do
-            if v.override == true then
-                if v.value == nil then
-                    print("A value for '--" .. k .. "' is required")
-                    ArgParse.printShortHelp()
-                end
-                commands[k] = v.value
-            end
+            commands[k] = v.value
         end
         return commands
     end
@@ -105,9 +123,6 @@ function ArgParse:parse(args, index)
                 print("A value for '--" .. k .. "' is required")
                 ArgParse.printShortHelp()
             end
-        end
-        if v.override then
-            v.value = false
         end
         commands[k] = v.value
     end

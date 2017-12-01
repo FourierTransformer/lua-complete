@@ -199,7 +199,11 @@ local function processRequest(line)
                 -- some variables don't get fully explored...
                 if lastTable.table then
                     for k, v in pairs(lastTable.table) do
-                        table.insert(output.info, {name=k, type=v.type})
+                        if v.type == "function" and v["function"].what == "Lua" then
+                            table.insert(output.info, {name=k, type=v.type, paramList=v["function"].paramList})
+                        else
+                            table.insert(output.info, {name=k, type=v.type})
+                        end
                     end
                 end
             end
