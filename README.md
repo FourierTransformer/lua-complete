@@ -9,7 +9,7 @@ luarocks install --server=http://luarocks.org/dev lua-complete
 ```
 
 2. Install and configure one of the lua-complete plugins:
-    * [LuaComplete-Sublime](https://github.com/FourierTransformer/LuaComplete-Sublime) (soon to be in Package Control!)
+    * [LuaComplete-Sublime](https://github.com/FourierTransformer/LuaComplete-Sublime) (still in development)
 
 ### Commandline Options
 ```
