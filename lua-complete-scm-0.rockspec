@@ -1,12 +1,17 @@
 package = "lua-complete"
-version = "dev-1"
+version = "scm-0"
 
 source = {
     url = "git://github.com/FourierTransformer/lua-complete.git"
 }
 
 description = {
-    summary = "A web framework for MoonScript & Lua",
+    summary = "lua-complete is an auto-completion engine for the Lua language",
+    detailed = [[
+    lua-complete can provide auto-complete suggestions for a text editor or IDE.
+    The file contents, cursor location, and [optionally] include directory get passed in,
+    and lua-complete will suggest elements in the table and/or function arguments (for Lua functions). 
+    ]],
     homepage = "http://github.com/FourierTransformer/lua-complete",
     maintainer = "Shakil Thakur <shakil.thakur@gmail.com>",
     license = "MIT"

@@ -21,6 +21,7 @@ describe("Going to test a private element", function()
         ['derp["herp"].perp('] = 'derp["herp"].perp',
         ['=str:'] = 'str',
         [' str('] = 'str',
+        ['derp(herp.'] = "herp"
     }
 
     for k, v in pairs(getTest) do
@@ -38,6 +39,7 @@ describe("Going to test a private element", function()
         ['derp["herp"].perp('] = {"derp", "herp", "perp"},
         ['=str:'] = {'str'},
         [' str('] = {'str'},
+        ['derp(herp.'] = {"herp"}
     }
 
     for k, v in pairs(parseTest) do

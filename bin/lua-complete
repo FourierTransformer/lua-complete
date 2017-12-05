@@ -12,7 +12,7 @@ function ArgParse.printFullHelp(serverArgs, clientArgs)
     serverArgs:print()
 
     print("\nClient options")
-    print("lua-complete client -c <cursor> [-f <file>] [-p <port>] [-i] [-x]")
+    print("lua-complete client -c <cursor> [-f <file>] [-p <port>] [-r <packagePath>] [-i] [-x]")
     clientArgs:print()
 
     os.exit()
@@ -68,8 +68,6 @@ local function main(args)
         if commands["shutdown"] then
             client.shutdown(commands.port)
         else
-            -- check for cursor (required if not doing a shutdown)
-
             -- keep track of the response
             local response
             if commands.stdin then
