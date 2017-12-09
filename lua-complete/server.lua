@@ -149,7 +149,8 @@ local function processRequest(line)
         print("module analysis complete")
     else
         print("analysis wasn't completed successfully")
-        return {}
+        print("continuing anyway")
+        -- return {}
     end
 
     -- try to find the variable that the cursor is on.
@@ -162,7 +163,7 @@ local function processRequest(line)
     -- keep track of the analyzed module
     local cursorLookupModule
     -- look in file first, then stdlib as people may override stdlib names
-    if analysis.variables[cursorVariable] then
+    if analysis and analysis.variables[cursorVariable] then
         cursorLookupModule = analysis.variables[cursorVariable]
     elseif fileCache[filename][cursorVariable] then
         print("found in file cache")
