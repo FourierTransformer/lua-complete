@@ -106,10 +106,11 @@ local function processRequest(line)
 
             -- check if it's already been analyzed for the
             -- variable in the current file
-            if not fileCache[filename][variable] then
+            -- if not fileCache[filename][variable] then
                 print("analyzed variable", variable)
 
                 -- set the filename -> variable to the module name
+                print("moduleInfo", moduleInfo.module)
                 fileCache[filename][variable] = {
                     ["name"] = moduleInfo.module,
                     ["type"] = nil
@@ -137,7 +138,7 @@ local function processRequest(line)
                 -- if so: check the last modified date and see if it's changed
                 --   if so: re-analyze the module
                 -- if not: try to analyze the module
-            elseif fileCache[filename][variable].type == "local" then
+            if fileCache[filename][variable].type == "local" then
                 print("\nlocal fileCache. RESCANNNN!!!")
                 local analyzedModule = analyze.analyzeModule(moduleInfo.module, packagePath)
                 if analyzedModule then
