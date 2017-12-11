@@ -103,3 +103,9 @@ I'm fairly certain the following is impossible to do in pure Lua:
 This is still really experimental! Be careful using this as I'm currently changing how/what it outputs and things that may affect everyday use. I would be especially wary of interacting with the server without the client (trying to send it JSON directly), as I may change the serialize/deserialize format in the future. The same general warning goes for using any of the analyze module functions.
 
 Your best bet is to use the command-line interface or import the server/client directly in lua - which would be useful if you're writing an editor in Lua.
+
+## Questions and Contributing
+Feel free to open a Github issue with any questions/features/suggestions that you have! Also, check out [CONTRIBUTING.md](CONTRIBUTING.md) if you want to help!
+
+## Licenses
+lua-complete is released under the [MIT License](LICENSE.md)
