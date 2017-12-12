@@ -216,14 +216,18 @@ local function analyzeLuaFunc(func)
     local paramCount = info.nparams
     local isVarArg = info.isVarArg
     local paramNameList = {}
-    for i = 1, paramCount do
-        local param_name = debug.getlocal(func, i)
-        paramNameList[i] = param_name
-    end
 
-    -- add the ...'s for varargs
-    if isVarArg then
-        paramNameList[paramCount+1] = "..."
+    -- nparams doesn't exist in lua 5.1
+    if paramCount then
+        for i = 1, paramCount do
+            local param_name = debug.getlocal(func, i)
+            paramNameList[i] = param_name
+        end
+
+        -- add the ...'s for varargs
+        if isVarArg then
+            paramNameList[paramCount+1] = "..."
+        end
     end
 
     -- build up the output
