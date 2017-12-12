@@ -22,7 +22,9 @@ script:
   - busted --verbose --coverage
 
 after_success:
-- luacov-coveralls -i $TRAVIS_BUILD_DIR/lua-complete
+- INSTALL=`echo $TRAVIS_BUILD_DIR/lua_install | sed 's/-/%-/'`
+- echo $INSTALL
+- luacov-coveralls -e $INSTALL
 
 branches:
   except:
