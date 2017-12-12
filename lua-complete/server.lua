@@ -124,7 +124,7 @@ local function processRequest(line)
                 if not moduleCache[moduleInfo.module] then
                     local analyzedModule = analyze.analyzeModule(moduleInfo.module)
                     if analyzedModule then
-                        moduleCache[moduleInfo.module] = analyze.analyzeModule(moduleInfo.module)
+                        moduleCache[moduleInfo.module] = analyzedModule
                         fileCache[filename][variable].type = "system"
                     else
                         moduleCache[moduleInfo.module] = analyze.analyzeModule(moduleInfo.module, packagePath)
@@ -242,6 +242,9 @@ function server.main(port)
                 running = false
             else
                 local output = processRequest(line)
+                if output.type == "table" then
+                    table.sort(output.info, function(a, b) return a.name < b.name end)
+                end
                 local encodedOutput = cjson.encode(output)
                 client:send(encodedOutput .. "\n")
             end

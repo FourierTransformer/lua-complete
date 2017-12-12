@@ -4,6 +4,80 @@ local pretty = require 'pl.pretty'
 local analyze = {}
 analyze.defaultPackagePath = package.path
 
+-- for compatibilityy
+local M = {}
+
+-- a lua getParams function
+-- adapted from https://facepunch.com/showthread.php?t=884409
+if not jit and not _ENV then
+    -- for vanilla lua 5.1
+    function M.getParams(func)
+        -- keep track of output
+        local paramNameList = {}
+        local paramCount = 0
+
+        -- create a coroutine with the func
+        local co = coroutine.create(func)
+
+        -- set hook to run when the coroutine is called
+        debug.sethook(co, function()
+
+            -- this is done to constrain the args to debug.getlocal
+            local i, k = 1, debug.getlocal(co, 2, 1)
+            while k do
+                if k ~= "(*temporary)" then
+                    paramCount = paramCount + 1
+                    paramNameList[paramCount] = k
+                end
+                i = i+1
+                k = debug.getlocal(co, 2, i)
+            end
+
+            -- it errors out at the end, so the function never really runs
+            error("~~end~~")
+        end, "c")
+
+        -- try to start the coroutine, it should error out immediately
+        local res, err = coroutine.resume(co)
+
+        -- nothing should ever return.
+        if res then
+            error("The function provided defies the laws of the universe.", 2)
+
+        -- and if errs with anything other than "~~end~~", something went wrong
+        elseif string.sub(tostring(err), -7) ~= "~~end~~" then
+            error("The function failed with the error: " .. tostring(err), 2)
+        end
+
+        -- ... shows up as "arg" at the end. This will replace it.
+        -- it should cover most uses, unless your last arg is named arg...
+        if paramNameList[paramCount] == "arg" then
+            paramNameList[paramCount] = "..."
+        end
+
+        return paramNameList
+    end
+else
+
+    -- for everything else
+    function M.getParams(func, paramCount, isVarArg)
+        -- set it all up
+        local paramNameList = {}
+
+        -- get the parameters
+        for i = 1, paramCount do
+            local param_name = debug.getlocal(func, i)
+            paramNameList[i] = param_name
+        end
+
+        -- add the ...'s for varargs
+        if isVarArg then
+            paramNameList[paramCount+1] = "..."
+        end
+        return paramNameList
+    end
+end
+
 -- a basic findEquals. Could one day do a lot more, but starting small for now.
 local function findEquals(fullTable, output, line)
     -- for analyzing the current line
@@ -203,7 +277,6 @@ function analyze.analyzeSource(src)
     return assignments
 end
 
--- adapted from https://facepunch.com/showthread.php?t=884409
 local function analyzeLuaFunc(func)
     local info = debug.getinfo(func, "uS")
     local out = {what = info.what}
@@ -214,21 +287,8 @@ local function analyzeLuaFunc(func)
 
     -- going into the code!
     local paramCount = info.nparams
-    local isVarArg = info.isVarArg
-    local paramNameList = {}
-
-    -- nparams doesn't exist in lua 5.1
-    if paramCount then
-        for i = 1, paramCount do
-            local param_name = debug.getlocal(func, i)
-            paramNameList[i] = param_name
-        end
-
-        -- add the ...'s for varargs
-        if isVarArg then
-            paramNameList[paramCount+1] = "..."
-        end
-    end
+    local isVarArg = info.isvararg
+    local paramNameList = M.getParams(func, paramCount, isVarArg)
 
     -- build up the output
     out["paramList"] = paramNameList
