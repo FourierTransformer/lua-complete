@@ -22,6 +22,7 @@ script:
   - busted --verbose --coverage
 
 after_success:
+- echo $TRAVIS_BUILD_DIR
 - luacov-coveralls -e $TRAVIS_BUILD_DIR/lua_install
 
 branches:
