@@ -1,4 +1,7 @@
 # LuaComplete (BETA)
+[![Build Status](https://travis-ci.org/FourierTransformer/lua-complete.svg?branch=master)](https://travis-ci.org/FourierTransformer/lua-complete)
+[![Coverage Status](https://coveralls.io/repos/github/FourierTransformer/lua-complete/badge.svg?branch=master)](https://coveralls.io/github/FourierTransformer/lua-complete?branch=master)
+
 LuaComplete is a code completion helper that uses analysis to determine function names, function parameters, and table keys. It should one day be able to help text editors and IDEs do completion of Lua code. It follows the client/server model used for auto-completing code and caches analysis for speed.
 
 
