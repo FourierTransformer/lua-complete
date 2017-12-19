@@ -1,5 +1,5 @@
 package = "lua-complete"
-version = "scm-0"
+version = "scm-1"
 
 source = {
     url = "git://github.com/FourierTransformer/lua-complete.git"
