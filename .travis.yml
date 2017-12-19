@@ -13,7 +13,7 @@ before_install:
   - export PATH=$PATH:$PWD/lua_install/bin # Add directory with all installed binaries to PATH
 
 install:
-  - luarocks install --only-deps lua-complete-scm-0.rockspec
+  - luarocks install --only-deps lua-complete-scm-1.rockspec
   - luarocks install busted
   - luarocks install luacov
   - luarocks install luacov-coveralls
