@@ -1,6 +1,13 @@
-# lua-complete (BETA)
+# Deprecated: lua-complete
 [![Build Status](https://travis-ci.org/FourierTransformer/lua-complete.svg?branch=master)](https://travis-ci.org/FourierTransformer/lua-complete)
 [![Coverage Status](https://coveralls.io/repos/github/FourierTransformer/lua-complete/badge.svg?branch=master)](https://coveralls.io/github/FourierTransformer/lua-complete?branch=master)
+lua-complete is no longer being worked on. There are numerous other lua code completion tools out there (with actual language-server support!)
+
+Alternatives to take a look at:
+ * https://github.com/sumneko/lua-language-server
+ * https://github.com/EmmyLua/EmmyLua-LanguageServer
+
+# Original README below
 
 lua-complete is a code completion helper that uses analysis to determine function names, function parameters, and table keys. It should one day be able to help text editors and IDEs do completion of Lua code. It follows the client/server model used for auto-completing code and caches analysis for speed.
 
